@@ -1,0 +1,62 @@
+#!/bin/bash
+# This options tells gridware to change to the current directory before
+# executing the job (default is the home of the user)
+#$-cwd
+#
+# This option declares the amount of memory the job will
+# use. Specify this value as accurat as possible. If you
+# declare too low memory usage, your job may be aborted.
+# If you declare too high memory usage, your job might be
+# wait for a long time until it is started on a machine
+# that has the sufficient amount of free memory.
+#$-l vf=10G
+#
+# Specify this option only for multithreaded jobs that use
+# more than one cpu core. The value 1..24 denotes the number
+# of requested cpu cores. Please note that multithreaded jobs
+# are always calculated on a single machine - for parallel
+# jobs you should use MPI instead.
+# Another important hint: memory request by -l vf=... are
+# multiplied by the number of requested cpu cores. Thus you
+# should divide the overall memory consumption of your job by
+# the number of parallel threads.
+#$-pe serial 1
+#
+# -- Job name ---
+#$ -N filtering
+#$ -S /bin/bash
+#
+# Please insert your mail address!
+#$-M kai.wei@tum.de
+
+export LD_LIBRARY_PATH=/cluster/java/latest/jre/lib/amd64:/cluster/java/latest/jre/lib/amd64/server:/cluster/java/latest/jre/lib/amd64/xawt:/cluster/java/latest/lib:/cluster/boost-1_64_0/lib:/cluster/gsl-2.3/lib
+export PATH=/cluster/gridengine/ge2011.11/bin/linux-x64:/cluster/openmpi/bin:/cluster/java/latest/bin:/cluster/software/bin:/sysinst/bin:/cluster/gridengine/ge2011.11/bin/linux-x64:/usr/lib64/qt-3.3/bin:/cluster/openmpi/bin:/cluster/java/latest/bin:/cluster/software/bin:/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin:/root/bin:/data/proj/teaching/NGS_course/bin/
+
+export PERL5LIB=/data/proj/teaching/NGS_course/Softwares/vcftools-vcftools-2543f81/src/perl
+export PATH=/cluster/gridengine/ge2011.11/bin/linux-x64:/cluster/openmpi/bin:/cluster/java/latest/bin:/cluster/software/bin:/sysinst/bin:/cluster/gridengine/ge2011.11/bin/linux-x64:/usr/lib64/qt-3.3/bin:/cluster/openmpi/bin:/cluster/java/latest/bin:/cluster/software/bin:/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin:/root/bin:/data/proj/teaching/NGS_course/bin:/data/proj/teaching/NGS_course/Softwares/vcftools-vcftools-2543f81/src/perl
+
+ref="/data/proj/chilense/30_genomes_outputs/kai_wei/variant_call/CNVs/spenn_Assem_GCA_001406875.2/spenn.fasta"
+GATK="java -jar /data/proj/teaching/NGS_course/Softwares/GenomeAnalysisTK-3.7/GenomeAnalysisTK.jar"
+
+## GATK: get snps matrix
+# $GATK -T SelectVariants -R $ref --variant 31genomes.GATK.raw.vcf.gz -selectType SNP -log selectsnp.log -o snp_filter/31genomes.GATK.snp.raw.vcf.gz
+
+### GATK: filter snps
+#		$GATK -T VariantFiltration -R $ref --variant snp_filter/31genomes.GATK.snp.raw.vcf.gz \
+#		--filterExpression "QD < 10.0" --filterName "QUALdepth" \
+#		--filterExpression "FS > 40.0" --filterName "SNPSBFilter" \
+#		--filterExpression "SOR > 3.0" --filterName "StrandOddsRatio" \
+#		--filterExpression "MQ < 30.0" --filterName "RMSmapQual" \
+#		--filterExpression "MQRankSum < -5.0" --filterName "MQRS" \
+#		--filterExpression "ReadPosRankSum < -5.0" --filterName "RPRS" \
+#		-log snp_filter/31genomes.GATK.snp.log -o snp_filter/31genomes.GATK.snp.flt.vcf.gz 
+
+#		$GATK -T SelectVariants -R $ref --excludeFiltered --variant snp_filter/31genomes.GATK.snp.flt.vcf.gz \
+#		-log snp_filter/31genomes.GATK.snp.log -o snp_filter/31genomes.good.vcf.gz 
+
+
+### vcf: generate a vcf file which contains all the good snps
+# vcftools --gzvcf snp_filter/31genomes.GATK.snp.flt.vcf.gz --remove-filtered-all --recode --out snp_filter/31genomes.GATK.goodsnp
+# bgzip -c snp_filter/31genomes.GATK.goodsnp.recode.vcf > snp_filter/31genomes.GATK.goodsnp.vcf.gz
+ /data/proj/chilense/30_genomes_outputs/kai_wei/variant_call/freebayes_call/tabix-0.2.6/tabix -p vcf snp_filter/31genomes.GATK.goodsnp.vcf.gz
+
