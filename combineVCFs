@@ -1,0 +1,77 @@
+#!/bin/bash
+# This options tells gridware to change to the current directory before
+# executing the job (default is the home of the user)
+#$-cwd
+#
+# This option declares the amount of memory the job will
+# use. Specify this value as accurat as possible. If you
+# declare too low memory usage, your job may be aborted.
+# If you declare too high memory usage, your job might be
+# wait for a long time until it is started on a machine
+# that has the sufficient amount of free memory.
+#$-l vf=4G
+#
+# Specify this option only for multithreaded jobs that use
+# more than one cpu core. The value 1..24 denotes the number
+# of requested cpu cores. Please note that multithreaded jobs
+# are always calculated on a single machine - for parallel
+# jobs you should use MPI instead.
+# Another important hint: memory request by -l vf=... are
+# multiplied by the number of requested cpu cores. Thus you
+# should divide the overall memory consumption of your job by
+# the number of parallel threads.
+#$-pe serial 1
+#
+# -- Job name ---
+#$ -N combine
+#$ -S /bin/bash
+#
+# Please insert your mail address!
+#$-M your.email@tum.de
+
+export LD_LIBRARY_PATH=/cluster/java/latest/jre/lib/amd64:/cluster/java/latest/jre/lib/amd64/server:/cluster/java/latest/jre/lib/amd64/xawt:/cluster/java/latest/lib:/cluster/boost-1_64_0/lib:/cluster/gsl-2.3/lib
+export PATH=/cluster/gridengine/ge2011.11/bin/linux-x64:/cluster/openmpi/bin:/cluster/java/latest/bin:/cluster/software/bin:/sysinst/bin:/cluster/gridengine/ge2011.11/bin/linux-x64:/usr/lib64/qt-3.3/bin:/cluster/openmpi/bin:/cluster/java/latest/bin:/cluster/software/bin:/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin:/root/bin:/data/proj/teaching/NGS_course/bin/
+
+ref="/data/proj/chilense/30_genomes_outputs/kai_wei/variant_call/CNVs/spenn_Assem_GCA_001406875.2/spenn.fasta"
+GATK="java -Xmx240g -jar /data/proj/teaching/NGS_course/Softwares/GenomeAnalysisTK-3.7/GenomeAnalysisTK.jar"
+
+mkdir /localscratch/combineGVCFs
+mkdir /localscratch/combineGVCFs/output
+
+$GATK -T CombineGVCFs -R $ref \
+   --variant LA1963_33.raw_variants.g.vcf \
+   --variant LA1963_34.raw_variants.g.vcf \
+   --variant LA1963_36.raw_variants.g.vcf \
+   --variant LA1963_37.raw_variants.g.vcf \
+   --variant LA1963_38.raw_variants.g.vcf \
+   --variant LA2931_21.raw_variants.g.vcf \
+   --variant LA2931_22.raw_variants.g.vcf \
+   --variant LA2931_23.raw_variants.g.vcf \
+   --variant LA2931_24.raw_variants.g.vcf \
+   --variant LA2931_25.raw_variants.g.vcf \
+   --variant LA2932_27.raw_variants.g.vcf \
+   --variant LA2932_28.raw_variants.g.vcf \
+   --variant LA2932_29.raw_variants.g.vcf \
+   --variant LA2932_30.raw_variants.g.vcf \
+   --variant LA2932_32.raw_variants.g.vcf \
+   --variant LA3111_11.raw_variants.g.vcf \
+   --variant LA3111_12.raw_variants.g.vcf \
+   --variant LA3111_14.raw_variants.g.vcf \
+   --variant LA3111_8.raw_variants.g.vcf \
+   --variant LA3111_9.raw_variants.g.vcf \
+   --variant LA4107_15.raw_variants.g.vcf \
+   --variant LA4107_16.raw_variants.g.vcf \
+   --variant LA4107_17.raw_variants.g.vcf \
+   --variant LA4107_19.raw_variants.g.vcf \
+   --variant LA4107_20.raw_variants.g.vcf \
+   --variant LA4330_1.raw_variants.g.vcf \
+   --variant LA4330_3.raw_variants.g.vcf \
+   --variant LA4330_4.raw_variants.g.vcf \
+   --variant LA4330_5.raw_variants.g.vcf \
+   --variant LA4330_6.raw_variants.g.vcf \
+   --variant S.pen.LA0716.ERR418107.raw_variants.g.vcf \
+   -o 31genomes.GATK.g.vcf
+
+mv /localscratch/combineGVCFs/output /data/proj/chilense/30_genomes_outputs/kai_wei/variant_call/new_calling
+rm -rf /localscratch/combineGVCFs
+
