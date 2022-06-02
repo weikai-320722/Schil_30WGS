@@ -1,0 +1,73 @@
+#!/bin/bash
+# This options tells gridware to change to the current directory before
+# executing the job (default is the home of the user)
+#$-cwd
+#
+# This option declares the amount of memory the job will
+# use. Specify this value as accurat as possible. If you
+# declare too low memory usage, your job may be aborted.
+# If you declare too high memory usage, your job might be
+# wait for a long time until it is started on a machine
+# that has the sufficient amount of free memory.
+#$-l vf=5G
+#
+# Specify this option only for multithreaded jobs that use
+# more than one cpu core. The value 1..24 denotes the number
+# of requested cpu cores. Please note that multithreaded jobs
+# are always calculated on a single machine - for parallel
+# jobs you should use MPI instead.
+# Another important hint: memory request by -l vf=... are
+# multiplied by the number of requested cpu cores. Thus you
+# should divide the overall memory consumption of your job by
+# the number of parallel threads.
+#$-pe serial 13
+#
+# -- Job name ---
+#$ -N freebayes
+#$ -S /bin/bash
+#
+# Please insert your mail address!
+#$-M kai.wei@tum.de
+
+# freebayes/scripts/freebayes-parallel <(freebayes/scripts/fasta_generate_regions.py /data/proj/chilense/30_genomes_outputs/kai_wei/Spennellii.fa.fai 100000) 24 \
+
+#export PERL5LIB=/data/proj/chilense/genomes_process/variantcall/vcftools/src/perl
+export PATH=/cluster/gridengine/ge2011.11/bin/linux-x64:/cluster/openmpi/bin:/cluster/java/latest/bin:/cluster/software/bin:/sysinst/bin:/cluster/gridengine/ge2011.11/bin/linux-x64:/usr/lib64/qt-3.3/bin:/cluster/openmpi/bin:/cluster/java/latest/bin:/cluster/software/bin:/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin:/root/bin:/data/proj/teaching/NGS_course/bin:/data/proj/chilense/genomes_process/variantcall/vcftools/src/perl:/data/proj/teaching/NGS_course/Softwares/freebayes/bin
+
+
+for line in `cat chromlist`; do
+	freebayes -f /data/proj/chilense/30_genomes_outputs/kai_wei/Spennellii.fa \
+	/data/proj/chilense/30_genomes_outputs/kai_wei/LA1963_33.realigned.bam \
+LA1963_34.realigned.bam \
+LA1963_36.realigned.bam \
+LA1963_37.realigned.bam \
+LA1963_38.realigned.bam \
+LA2391_21.realigned.bam \
+LA2931_22.realigned.bam \
+LA2931_23.realigned.bam \
+LA2931_24.realigned.bam \
+LA2931_25.realigned.bam \
+LA2932_27.realigned.bam \
+LA2932_28.realigned.bam \
+LA2932_29.realigned.bam \
+LA2932_30.realigned.bam \
+LA2932_32.realigned.bam \
+LA3111_11.realigned.bam \
+LA3111_12.realigned.bam \
+LA3111_14.realigned.bam \
+LA3111_8.realigned.bam \
+LA3111_9.realigned.bam \
+LA4107_15.realigned.bam \
+LA4107_16.realigned.bam \
+LA4107_17.realigned.bam \
+LA4107_19.realigned.bam \
+LA4107_20.realigned.bam \
+LA4330_1.realigned.bam \
+LA4330_3.realigned.bam \
+LA4330_4.realigned.bam \
+LA4330_5.realigned.bam \
+LA4330_6.realigned.bam \
+--region $line --genotype-qualities | bgzip > nofilter/30genomes.$line.vcf.gz & 
+done
+wait
+
