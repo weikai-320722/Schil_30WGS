@@ -1,0 +1,96 @@
+#!/bin/bash
+# This options tells gridware to change to the current directory before
+# executing the job (default is the home of the user)
+#$-cwd
+#
+# This option declares the amount of memory the job will
+# use. Specify this value as accurat as possible. If you
+# declare too low memory usage, your job may be aborted.
+# If you declare too high memory usage, your job might be
+# wait for a long time until it is started on a machine
+# that has the sufficient amount of free memory.
+#$-l vf=1G
+#
+# Specify this option only for multithreaded jobs that use
+# more than one cpu core. The value 1..24 denotes the number
+# of requested cpu cores. Please note that multithreaded jobs
+# are always calculated on a single machine - for parallel
+# jobs you should use MPI instead.
+# Another important hint: memory request by -l vf=... are
+# multiplied by the number of requested cpu cores. Thus you
+# should divide the overall memory consumption of your job by
+# the number of parallel threads.
+#$-pe serial 12
+#
+# -- Job name ---
+#$ -N mapping
+#$ -S /bin/bash
+#
+# Please insert your mail address!
+#$-M kai.wei@tum.de
+
+export LD_LIBRARY_PATH=/cluster/java/latest/jre/lib/amd64:/cluster/java/latest/jre/lib/amd64/server:/cluster/java/latest/jre/lib/amd64/xawt:/cluster/java/latest/lib:/cluster/boost-1_64_0/lib:/cluster/gsl-2.3/lib
+export PATH=/cluster/gridengine/ge2011.11/bin/linux-x64:/cluster/openmpi/bin:/cluster/java/latest/bin:/cluster/software/bin:/sysinst/bin:/cluster/gridengine/ge2011.11/bin/linux-x64:/usr/lib64/qt-3.3/bin:/cluster/openmpi/bin:/cluster/java/latest/bin:/cluster/software/bin:/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin:/root/bin:/data/proj/teaching/NGS_course/bin/
+
+ref_dir="/data/proj/chilense/30_genomes_outputs/kai_wei"
+GATK="java -jar /data/proj/teaching/NGS_course/Softwares/GenomeAnalysisTK-3.7/GenomeAnalysisTK.jar"
+samtools="/data/proj/teaching/NGS_course/Softwares/samtools-1.5/bin/samtools"
+vcftools="/data/proj/teaching/NGS_course/Softwares/vcftools-vcftools-2543f81/bin/vcftools"
+bcftools="/data/proj/teaching/NGS_course/Softwares/bcftools-1.3/bin/bcftools"
+
+genomes=/data/proj/chilense/Chilense30AccessionReSeq
+indiv=`ls -l $genomes | cut -d " " -f22 | cut -d "_" -f1 | head -n 61 | tail -n 60`
+
+for line in $indiv; do
+read_file1=$line"_R1.fastq.gz"
+read_file2=$line"_R2.fastq.gz"
+#Trimming
+java -jar ~/Tools/Trimmomatic-0.36/trimmomatic-0.36.jar PE -threads 2 -phred33 -trimlog $line.trimo.log $genomes/$read_file1 $genomes/$read_file2 $line.forward_paired.fq.gz $line.forward_unpaired.fq.gz $line.reverse_paired.fq.gz $line.reverse_unpaired.fq.gz ILLUMINACLIP:/data/home/users/k.wei/Tools/Trimmomatic-0.36/adapters/TruSeq3-PE.fa:2:30:10 LEADING:3 TRAILING:3 SLIDINGWINDOW:4:15 MINLEN:36 &&
+rm -rf *unpaired* &&
+#mapping
+~/Tools/bwa mem -M -t 12 $ref_dir/Spennellii.fa $line.forward_paired.fq.gz $line.reverse_paired.fq.gz > $line.mapped.sam &&
+#sam2bam
+$samtools view -b -o $line.mapped.bam $line.mapped.sam &&
+# rm -rf $line.mapped.sam &&
+#sorting
+$samtools sort -o $line.sorted.bam -O bam $line.mapped.bam &&
+#Add read groups
+if [ $line == '1' ] || [ $line == '3' ] || [ $line == '4' ] || [ $line == '5' ] || [ $line == '6' ]
+        then
+        sample="LA4330_"$line
+        else
+        if [ $line == '8' ] || [ $line == '9' ] || [ $line == '11' ] || [ $line == '12' ] || [ $line == '14' ]
+                then
+                sample="LA3111_"$line
+                else
+                if [ $line == '15' ] || [ $line == '16' ] || [ $line == '17' ] || [ $line == '19' ] || [ $line == '20' ]
+                        then
+                        sample="LA4107_"$line
+                        else
+                        if [ $line == '21' ] || [ $line == '22' ] || [ $line == '23' ] || [ $line == '24' ] || [ $line == '25' ]
+                                then
+                                sample="LA2931_"$line
+                                else
+                                if [ $line == '27' ] || [ $line == '28' ] || [ $line == '29' ] || [ $line == '30' ] || [ $line == '32' ]
+                                        then
+                                        sample="LA2932_"$line
+                                        else
+                                        sample="LA1963_"$line
+                                fi
+                        fi
+                fi
+        fi
+fi
+barcode=`zcat $genomes/$read_file1 | head -1 | cut -d ":" -f3,4,10 | tr -s ':' '.'`
+java -jar ~/Tools/AddOrReplaceReadGroups.jar I=$line.sorted.bam O=$sample.readgroups.bam RGID=$sample.$barcode RGLB=$sample RGPL=ILLUMINA RGPU=$barcode RGSM=$sample &&
+#Fix mates
+java -jar ~/Tools/FixMateInformation.jar I=$sample.readgroups.bam O=$sample.fixm.bam TMP_DIR=./temp &&
+#Mark duplicates
+java -jar ~/Tools/MarkDuplicates.jar I=$sample.fixm.bam O=$sample.dedup.bam M=$sample.metric.txt MAX_FILE_HANDLES_FOR_READ_ENDS_MAP=500 OPTICAL_DUPLICATE_PIXEL_DISTANCE=100 MAX_RECORDS_IN_RAM=5000000 VALIDATION_STRINGENCY=SILENT &&
+# index BAM file
+$samtools index $sample.dedup.bam
+#local realignment around indels
+$GATK -T RealignerTargetCreator -R Spennellii.fa -I $sample.dedup.bam -log $sample.pair_intervals.log -o $sample.intervals &&
+$GATK -T IndelRealigner -R Spennellii.fa -I $sample.dedup.bam -targetIntervals $sample.intervals -log $sample.realigned.log -o $sample.realigned.bam
+done
+
