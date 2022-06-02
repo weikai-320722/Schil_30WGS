@@ -1,0 +1,48 @@
+#!/bin/bash
+# This options tells gridware to change to the current directory before
+# executing the job (default is the home of the user)
+#$-cwd
+#
+# This option declares the amount of memory the job will
+# use. Specify this value as accurat as possible. If you
+# declare too low memory usage, your job may be aborted.
+# If you declare too high memory usage, your job might be
+# wait for a long time until it is started on a machine
+# that has the sufficient amount of free memory.
+#$-l vf=10G
+#
+# Specify this option only for multithreaded jobs that use
+# more than one cpu core. The value 1..24 denotes the number
+# of requested cpu cores. Please note that multithreaded jobs
+# are always calculated on a single machine - for parallel
+# jobs you should use MPI instead.
+# Another important hint: memory request by -l vf=... are
+# multiplied by the number of requested cpu cores. Thus you
+# should divide the overall memory consumption of your job by
+# the number of parallel threads.
+#$-pe serial 1
+#
+# -- Job name ---
+#$ -N haplo_caller
+#$ -S /bin/bash
+#
+# Please insert your mail address!
+#$-M kai.wei@tum.de
+
+export LD_LIBRARY_PATH=/cluster/java/latest/jre/lib/amd64:/cluster/java/latest/jre/lib/amd64/server:/cluster/java/latest/jre/lib/amd64/xawt:/cluster/java/latest/lib:/cluster/boost-1_64_0/lib:/cluster/gsl-2.3/lib
+export PATH=/cluster/gridengine/ge2011.11/bin/linux-x64:/cluster/openmpi/bin:/cluster/java/latest/bin:/cluster/software/bin:/sysinst/bin:/cluster/gridengine/ge2011.11/bin/linux-x64:/usr/lib64/qt-3.3/bin:/cluster/openmpi/bin:/cluster/java/latest/bin:/cluster/software/bin:/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin:/root/bin:/data/proj/teaching/NGS_course/bin/
+
+ref="/data/proj/chilense/30_genomes_outputs/reference/spenn_Assem_GCA_001406875.2/spenn.fasta"
+GATK="java -jar /data/proj/teaching/NGS_course/Softwares/GenomeAnalysisTK-3.7/GenomeAnalysisTK.jar"
+
+#indiv=`cat bamlist`
+#for line in $indiv; do
+$GATK -R $ref \
+      -T HaplotypeCaller \
+      -I /data/proj/chilense/30_genomes_outputs/bam_files/map2penn_V2/$line.realigned.bam \
+      --emitRefConfidence GVCF \
+      -log LA4330_5.log \
+      -o LA4330_5.raw_variants.g.vcf 
+#done
+#wait
+
